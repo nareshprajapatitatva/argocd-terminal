@@ -134,6 +134,15 @@ data:
             separator: /
             replacement: /var/log/pods/*$1/$2/*.log
             target_label: __path__
+
+      # Direct fallback job: tails every pod log directly off the node filesystem
+      - job_name: direct-pod-logs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: direct-logs
+              __path__: /var/log/pods/*/*/*.log
 ---
 apiVersion: v1
 kind: ServiceAccount

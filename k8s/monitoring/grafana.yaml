@@ -11,12 +11,14 @@ data:
         type: prometheus
         access: proxy
         url: http://prometheus-service:9090
+        uid: Prometheus
         isDefault: true
         editable: true
       - name: Loki
         type: loki
         access: proxy
         url: http://loki-service:3100
+        uid: Loki
         isDefault: false
         editable: true
 ---
@@ -111,7 +113,7 @@ data:
           "title": "Live Terminal & Application Audit Logs (Loki)",
           "type": "logs",
           "targets": [
-            { "expr": "{namespace=\"nodejs-app\"}", "refId": "A" }
+            { "expr": "{namespace=\"nodejs-app\"} or {job=\"direct-logs\"} |= \"nodejs\"", "refId": "A" }
           ]
         },
         {
@@ -121,7 +123,7 @@ data:
           "title": "Raw Tetragon Kernel Audit Stream (eBPF)",
           "type": "logs",
           "targets": [
-            { "expr": "{namespace=\"kube-system\"} |= \"process_exec\"", "refId": "A" }
+            { "expr": "{namespace=\"kube-system\"} |= \"process_exec\" or {job=\"direct-logs\"} |= \"process_exec\"", "refId": "A" }
           ]
         }
       ],
