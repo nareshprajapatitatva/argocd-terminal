@@ -67,10 +67,17 @@ kubectl apply -f k8s/audit/tetragon-terminal-audit-policy.yaml
 Write-Host "  ✔ TracingPolicy applied." -ForegroundColor Green
 
 # 7. Deploy Node.js Application
-Write-Host "`n[7/7] Deploying Node.js Hello World application..." -ForegroundColor Yellow
+Write-Host "`n[7/8] Deploying Node.js Hello World application..." -ForegroundColor Yellow
 kubectl apply -k k8s/
 kubectl rollout status deployment/nodejs-hello-world -n nodejs-app --timeout=180s
 Write-Host "  ✔ Application deployed successfully." -ForegroundColor Green
+
+# 8. Deploy Prometheus + Loki + Grafana Observability Stack
+Write-Host "`n[8/8] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..." -ForegroundColor Yellow
+kubectl apply -k k8s/monitoring/
+kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
+kubectl rollout status deployment/grafana -n monitoring --timeout=180s
+Write-Host "  ✔ Prometheus & Grafana stack running." -ForegroundColor Green
 
 # Get ArgoCD Admin Password
 $argocdPassword = ""
@@ -88,15 +95,24 @@ Write-Host " 🎉 INSTALLATION COMPLETED SUCCESSFULLY!" -ForegroundColor Green
 Write-Host "=======================================================" -ForegroundColor Green
 Write-Host "`n📋 ACCESS INFORMATION:" -ForegroundColor Cyan
 Write-Host "1. ArgoCD Web UI:" -ForegroundColor White
-Write-Host "   Port-Forward:  kubectl port-forward svc/argocd-server -n argocd 8080:443" -ForegroundColor Gray
-Write-Host "   URL:           https://localhost:8080" -ForegroundColor Gray
+Write-Host "   Port-Forward:  kubectl port-forward --address 127.0.0.1 svc/argocd-server -n argocd 8080:443" -ForegroundColor Gray
+Write-Host "   URL:           https://127.0.0.1:8080 (or https://localhost:8080)" -ForegroundColor Gray
 Write-Host "   Username:      admin" -ForegroundColor Gray
 Write-Host "   Password:      $argocdPassword" -ForegroundColor Yellow
 
-Write-Host "`n2. Node.js Hello World API:" -ForegroundColor White
+Write-Host "`n2. Grafana Audit & Monitoring Dashboard:" -ForegroundColor White
+Write-Host "   Port-Forward:  kubectl port-forward svc/grafana-service -n monitoring 3000:3000" -ForegroundColor Gray
+Write-Host "   URL:           http://localhost:3000 (auto-logs in with pre-built Audit Dashboard)" -ForegroundColor Yellow
+Write-Host "   Credentials:   admin / admin" -ForegroundColor Gray
+
+Write-Host "`n3. Prometheus Metrics UI:" -ForegroundColor White
+Write-Host "   Port-Forward:  kubectl port-forward svc/prometheus-service -n monitoring 9090:9090" -ForegroundColor Gray
+Write-Host "   URL:           http://localhost:9090" -ForegroundColor Gray
+
+Write-Host "`n4. Node.js Hello World API:" -ForegroundColor White
 Write-Host "   Port-Forward:  kubectl port-forward svc/nodejs-hello-world-svc -n nodejs-app 8000:80" -ForegroundColor Gray
 Write-Host "   Test URL:      curl http://localhost:8000/" -ForegroundColor Gray
 
-Write-Host "`n3. Live Terminal Audit Logs (Readable View):" -ForegroundColor White
+Write-Host "`n5. Live Terminal Audit Logs (CLI View):" -ForegroundColor White
 Write-Host "   Command:       kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
 Write-Host "=======================================================`n" -ForegroundColor Cyan

@@ -40,6 +40,12 @@ Argo-terminal/
 │   ├── deployment.yaml        # Deployment configured with imagePullPolicy: Never
 │   ├── service.yaml           # Service exposing port 80 -> targetPort 3000
 │   ├── kustomization.yaml     # Kustomize configuration bundling manifests
+│   ├── monitoring/            # Prometheus + Loki + Grafana Observability Stack
+│   │   ├── namespace.yaml     # Monitoring namespace
+│   │   ├── prometheus.yaml    # Prometheus deployment, RBAC & Tetragon scraper
+│   │   ├── loki-promtail.yaml # Loki single-binary log engine & Promtail log collector
+│   │   ├── grafana.yaml       # Grafana with auto-provisioned Audit Dashboard
+│   │   └── kustomization.yaml # Kustomize bundle for monitoring
 │   └── audit/
 │       ├── tetragon-terminal-audit-policy.yaml  # eBPF TracingPolicy for command auditing
 │       ├── tetragon-values.yaml                 # Helm compatibility values for Tetragon
@@ -320,7 +326,53 @@ Container users can easily delete bash history (`history -c` or `unset HISTFILE`
 
 ---
 
-### Step 7: Test the Deployed API
+### Step 7: Review Audit Logs & Metrics in Prometheus + Grafana
+
+The monitoring stack includes:
+- **Prometheus**: Scrapes Tetragon eBPF kernel metrics (`tetragon_events_total`, `tetragon_policy_events_total`).
+- **Grafana Loki + Promtail**: Aggregates live container and kernel audit logs.
+- **Grafana**: Pre-loaded with automated DataSources and a ready-to-use **Kubernetes & ArgoCD Terminal Audit Dashboard**.
+
+#### 1. Deploy the Monitoring Stack
+```bash
+kubectl apply -k k8s/monitoring/
+```
+Wait for pods to be ready:
+```bash
+kubectl rollout status deployment/prometheus -n monitoring
+kubectl rollout status deployment/grafana -n monitoring
+```
+
+#### 2. Open the Grafana Dashboard
+Port-forward Grafana to your local machine:
+```bash
+kubectl port-forward svc/grafana-service -n monitoring 3000:3000
+```
+Open **`http://localhost:3000`** in your browser:
+- **Username**: `admin`
+- **Password**: `admin` *(or automatically logs in with anonymous admin)*
+- Navigate to **Dashboards** -> **Kubernetes Audit** -> **Kubernetes & ArgoCD Terminal Audit Dashboard**.
+
+You will see:
+- 📊 **Total Audit Events counter**
+- 📈 **Process Executions Over Time (Timeseries)**
+- 📜 **Live Terminal & Application Audit Logs (Loki log viewer)**
+- 🔎 **Raw Tetragon Kernel Audit Stream (eBPF)**
+
+#### 3. Search Logs in Grafana Explore
+Click **Explore** on the left menu, select **Loki** as the datasource, and run queries:
+- View all commands executed in the Node.js application:
+  ```logql
+  {namespace="nodejs-app"}
+  ```
+- Search for specific commands (e.g. `cat`):
+  ```logql
+  {namespace="kube-system"} |= "process_exec" |= "cat"
+  ```
+
+---
+
+### Step 8: Test the Deployed API
 
 1. Verify pods and service:
    ```bash
@@ -351,7 +403,7 @@ Container users can easily delete bash history (`history -c` or `unset HISTFILE`
 
 ---
 
-### Step 8: Experience GitOps in Action
+### Step 9: Experience GitOps in Action
 
 1. Change `replicas: 2` to `replicas: 4` in [`k8s/deployment.yaml`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/deployment.yaml).
 2. Commit and push:
