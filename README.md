@@ -9,6 +9,23 @@ A complete production-ready GitOps project demonstrating:
 
 ---
 
+## ⚡ Quick One-Command Setup
+
+You can deploy the entire setup (Docker build, ArgoCD, Web Terminal, Tetragon eBPF audit engine, and Node.js API) with a single command:
+
+- **Windows PowerShell**:
+  ```powershell
+  .\install.ps1
+  ```
+
+- **Linux / macOS / WSL (Bash)**:
+  ```bash
+  chmod +x install.sh
+  ./install.sh
+  ```
+
+---
+
 ## 📁 Project Structure
 
 ```text
@@ -25,12 +42,15 @@ Argo-terminal/
 │   ├── kustomization.yaml     # Kustomize configuration bundling manifests
 │   └── audit/
 │       ├── tetragon-terminal-audit-policy.yaml  # eBPF TracingPolicy for command auditing
+│       ├── tetragon-values.yaml                 # Helm compatibility values for Tetragon
 │       ├── fluentbit-audit-config.yaml          # Log shipper to central SIEM
 │       └── PRODUCTION_AUDIT_GUIDE.md           # In-depth architectural audit documentation
 ├── argocd/
 │   ├── application.yaml       # ArgoCD Application Custom Resource (GitOps sync config)
 │   └── terminal-config.yaml   # Web Terminal feature flag, RBAC, and cluster roles
 ├── COMMAND_AUDIT_MATRIX.md    # Comprehensive table of commands audited by Tetragon
+├── install.ps1                # One-command installer for Windows PowerShell
+├── install.sh                 # One-command installer for Linux/macOS/WSL
 ├── .gitignore
 └── README.md
 ```
