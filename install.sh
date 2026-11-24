@@ -34,7 +34,7 @@ echo "  ✔ Docker image built successfully."
 echo ""
 echo "[3/9] Setting up ArgoCD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 echo "  -> Waiting for ArgoCD server to be ready..."
 kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 echo "  ✔ ArgoCD installed and running."
