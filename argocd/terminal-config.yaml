@@ -9,6 +9,7 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   exec.enabled: "true"
+  exec.shells: "bash,sh"
 
 ---
 # 2. Grant exec permissions to ArgoCD admin role in RBAC ConfigMap

@@ -1,0 +1,29 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: terminal-command-audit
+spec:
+  # Target the pods belonging to our Node.js application
+  podSelector:
+    matchLabels:
+      app: nodejs-hello-world
+  kprobes:
+    # 1. Capture external commands (ls, cat, node, rm, curl, etc.)
+    - call: "sys_execve"
+      syscall: true
+      args:
+        - index: 0
+          type: "string" # Path of the executed binary
+      selectors:
+        - matchActions:
+            - action: Post
+
+    # 2. Capture all 'cd' directory navigation!
+    - call: "sys_chdir"
+      syscall: true
+      args:
+        - index: 0
+          type: "string" # Directory path user navigated to
+      selectors:
+        - matchActions:
+            - action: Post

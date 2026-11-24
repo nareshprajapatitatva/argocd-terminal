@@ -1,0 +1,9 @@
+# Compatibility values for Kubernetes versions prior to v1.30 or clusters without native appArmorProfile schema
+tetragon:
+  securityContext:
+    # Disable native appArmorProfile to avoid schema validation errors on K8s < 1.30
+    appArmorProfile: null
+
+tetragonOperator:
+  securityContext:
+    appArmorProfile: null

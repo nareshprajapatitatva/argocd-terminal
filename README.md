@@ -1,6 +1,11 @@
-# Node.js Hello World API with Kubernetes and ArgoCD (Local Docker Image)
+# Node.js Hello World API with Kubernetes and ArgoCD (Local Docker & Audited Terminal)
 
-A complete GitOps starter project demonstrating how to build a Node.js Express REST API, containerize it with Docker **locally (without pushing to Docker Hub or any remote registry)**, define Kubernetes manifests, and manage continuous deployment using ArgoCD.
+A complete production-ready GitOps project demonstrating:
+- A Node.js Express REST API with health check probes (`/healthz`, `/readyz`).
+- Local Docker builds **without needing Docker Hub or any remote registry**.
+- Declarative Kubernetes deployment manifests and ArgoCD GitOps application.
+- **ArgoCD Web-based Terminal** for executing commands directly from the UI.
+- **Production-Grade Audit Trail**: Full visibility into **WHO** opened the terminal and **WHAT** exact commands were executed using kernel-level eBPF (Cilium Tetragon) and SIEM log correlation.
 
 ---
 
@@ -17,9 +22,15 @@ Argo-terminal/
 │   ├── namespace.yaml         # Kubernetes namespace (nodejs-app)
 │   ├── deployment.yaml        # Deployment configured with imagePullPolicy: Never
 │   ├── service.yaml           # Service exposing port 80 -> targetPort 3000
-│   └── kustomization.yaml     # Kustomize configuration bundling manifests
+│   ├── kustomization.yaml     # Kustomize configuration bundling manifests
+│   └── audit/
+│       ├── tetragon-terminal-audit-policy.yaml  # eBPF TracingPolicy for command auditing
+│       ├── fluentbit-audit-config.yaml          # Log shipper to central SIEM
+│       └── PRODUCTION_AUDIT_GUIDE.md           # In-depth architectural audit documentation
 ├── argocd/
-│   └── application.yaml       # ArgoCD Application Custom Resource (GitOps sync config)
+│   ├── application.yaml       # ArgoCD Application Custom Resource (GitOps sync config)
+│   └── terminal-config.yaml   # Web Terminal feature flag, RBAC, and cluster roles
+├── COMMAND_AUDIT_MATRIX.md    # Comprehensive table of commands audited by Tetragon
 ├── .gitignore
 └── README.md
 ```
@@ -34,6 +45,7 @@ Argo-terminal/
   - **Minikube**, OR
   - **Kind** (Kubernetes in Docker)
 - **kubectl** configured to communicate with your local cluster
+- **Helm** (v3+) for installing Tetragon / Falco
 - **Git** & a remote repository (e.g., GitHub, GitLab)
 - **ArgoCD** installed on your cluster
 
@@ -163,29 +175,104 @@ ArgoCD will automatically:
 
 ---
 
-### Step 5: (Optional) Enable ArgoCD Web Terminal (Exec Terminal in UI)
+### Step 5: Enable the ArgoCD Web Terminal (Exec in UI)
 
-ArgoCD includes a built-in web terminal to `exec` into running pod containers directly from the web browser. It is disabled by default for security.
+ArgoCD includes a built-in web terminal to execute commands directly inside containers from the web browser. It is disabled by default for security.
 
-To enable it:
-
-1. Apply the terminal configuration (enables `exec.enabled: "true"`, ArgoCD RBAC, and Kubernetes cluster roles):
+1. Apply [`argocd/terminal-config.yaml`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/argocd/terminal-config.yaml) (enables `exec.enabled: "true"`, ArgoCD RBAC, and Kubernetes cluster roles):
    ```bash
    kubectl apply -f argocd/terminal-config.yaml
    ```
 
-2. Restart the `argocd-server` deployment to pick up the new configuration:
+2. Restart the `argocd-server` deployment to apply changes:
    ```bash
    kubectl rollout restart deployment argocd-server -n argocd
    ```
 
-3. Open the ArgoCD Web UI (`https://localhost:8080`), click on your `nodejs-hello-world` application, click on any running Pod, and you will see the **Terminal** tab alongside Summary, Logs, and Events. You can now execute commands directly inside the container from your browser!
+3. Open the ArgoCD Web UI (`https://localhost:8080`), click on your `nodejs-hello-world` application, click on any running Pod, and select the **Terminal** tab. You can now execute commands interactively in the container!
 
 ---
 
-### Step 6: Test the Deployed API
+### Step 6: Production-Grade Terminal Auditing ("WHO" and "WHAT")
 
-1. Verify the pods are running:
+In production and compliance environments (SOC 2, ISO 27001, PCI-DSS), you must audit:
+1. **WHO opened the terminal session** (User identity, IP, timestamp).
+2. **WHAT commands and actions were performed** (Tamper-proof command logging).
+
+```text
+ ┌────────────────────────────────────────────────────────┐
+ │ Layer 1: "WHO" (ArgoCD Server Audit Logs + SSO)        │ ──┐
+ └────────────────────────────────────────────────────────┘   │
+                                                              ├──► [ SIEM / Log Analytics ]
+ ┌────────────────────────────────────────────────────────┐   │    (Splunk / Elastic / Datadog)
+ │ Layer 2: "WHAT" (eBPF Kernel Tracing via Tetragon)     │ ──┘
+ └────────────────────────────────────────────────────────┘
+```
+
+#### Layer 1: Tracking "WHO" (ArgoCD Audit Stream)
+- Configure ArgoCD SSO (OIDC/SAML with Okta, Azure AD, or Google Workspace) so sessions reflect real user emails instead of generic `admin`.
+- When a user opens the terminal, `argocd-server` logs:
+  ```json
+  {
+    "time": "2026-11-24T15:32:01Z",
+    "sub": "alice.smith@yourcompany.com",
+    "application": "nodejs-hello-world",
+    "podName": "nodejs-hello-world-74697ff789-9r84b",
+    "action": "terminal",
+    "clientIP": "10.0.4.15"
+  }
+  ```
+
+#### Layer 2: Tracking "WHAT" (Kernel eBPF via Cilium Tetragon)
+Container users can easily delete bash history (`history -c` or `unset HISTFILE`). eBPF operates inside the Linux kernel and intercepts the `sys_enter_execve` system call **before** CPU execution—making it **100% tamper-proof**.
+
+1. **Install Cilium Tetragon via Helm**:
+   ```bash
+   helm repo add cilium https://helm.cilium.io
+   helm repo update
+   helm install tetragon cilium/tetragon -n kube-system -f k8s/audit/tetragon-values.yaml
+   ```
+
+2. **Ensure Tetragon CRDs are registered (using stable v1.2.0 release)**:
+   ```bash
+   kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+   kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+   ```
+
+3. **Apply the Terminal Audit TracingPolicy**:
+   ```bash
+   kubectl apply -f k8s/audit/tetragon-terminal-audit-policy.yaml
+   ```
+
+3. **View live command executions across all pods**:
+   ```bash
+   kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | grep "process_exec"
+   ```
+
+   Whenever any command runs in the ArgoCD terminal (e.g. `cat /etc/passwd`, `env`), Tetragon records:
+   ```json
+   {
+     "time": "2026-11-24T15:32:05Z",
+     "process_exec": {
+       "process": {
+         "binary": "/bin/cat",
+         "arguments": "/bin/cat /etc/passwd",
+         "pod": { "namespace": "nodejs-app", "name": "nodejs-hello-world-74697ff789-9r84b" }
+       }
+     }
+   }
+   ```
+
+#### Layer 3: SIEM Log Shipping & Correlation
+- Deploy Fluent Bit using [`k8s/audit/fluentbit-audit-config.yaml`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/audit/fluentbit-audit-config.yaml) to forward both `audit.argocd` and `audit.tetragon` streams to your central SIEM (Elasticsearch, Splunk, Datadog, or Grafana Loki).
+- Correlate by matching `podName` + `time_window` to produce a single audit timeline linking the authenticated user to every executed command.
+- For complete architecture details, see [`k8s/audit/PRODUCTION_AUDIT_GUIDE.md`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/audit/PRODUCTION_AUDIT_GUIDE.md).
+
+---
+
+### Step 7: Test the Deployed API
+
+1. Verify pods and service:
    ```bash
    kubectl get pods -n nodejs-app
    kubectl get svc -n nodejs-app
@@ -211,3 +298,16 @@ To enable it:
      "version": "1.0.0"
    }
    ```
+
+---
+
+### Step 8: Experience GitOps in Action
+
+1. Change `replicas: 2` to `replicas: 4` in [`k8s/deployment.yaml`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/deployment.yaml).
+2. Commit and push:
+   ```bash
+   git add k8s/deployment.yaml
+   git commit -m "Scale up to 4 replicas"
+   git push origin main
+   ```
+3. Check ArgoCD or run `kubectl get pods -n nodejs-app`. ArgoCD automatically detects the Git change and reconciles the cluster to run 4 pods without manual `kubectl apply`.
