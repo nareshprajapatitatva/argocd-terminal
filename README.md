@@ -163,9 +163,10 @@ ArgoCD continuously monitors a Git repository to synchronize cluster state.
 
 3. Access the ArgoCD Web UI:
    ```bash
-   kubectl port-forward svc/argocd-server -n argocd 8080:443
+   kubectl port-forward --address 127.0.0.1 svc/argocd-server -n argocd 8080:443
    ```
-   Open `https://localhost:8080` in your browser.
+   Open `https://127.0.0.1:8080` (or `https://localhost:8080`) in your browser.
+   *(Note: Always use `https://`. If your browser shows a certificate warning, click Advanced -> Proceed to localhost).*
 
 4. Retrieve the initial `admin` password:
    - **Windows PowerShell**:
@@ -264,10 +265,39 @@ Container users can easily delete bash history (`history -c` or `unset HISTFILE`
    kubectl apply -f k8s/audit/tetragon-terminal-audit-policy.yaml
    ```
 
-3. **View live command executions across all pods**:
-   ```bash
-   kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | grep "process_exec"
-   ```
+4. **View live command audit logs in human-readable format**:
+
+   - **Method A (Recommended - Clean, Colorized via built-in `tetra` CLI)**:
+     ```bash
+     kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app
+     ```
+     Sample output:
+     ```text
+     🚀 process nodejs-app/nodejs-hello-world-xxx /bin/ls -la
+     📁 chdir   nodejs-app/nodejs-hello-world-xxx node_modules
+     🚀 process nodejs-app/nodejs-hello-world-xxx /bin/cat server.js
+     💥 exit    nodejs-app/nodejs-hello-world-xxx /bin/cat 0
+     ```
+
+   - **Method B (PowerShell live stream formatter)**:
+     ```powershell
+     kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | ForEach-Object {
+         $e = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
+         if ($e.process_exec -and $e.process_exec.process.pod.namespace -eq "nodejs-app") {
+             $p = $e.process_exec.process
+             Write-Host "[$($e.time.Substring(11,8))] [EXEC]  $($p.binary) $($p.arguments) (in $($p.cwd))" -ForegroundColor Green
+         }
+         elseif ($e.process_kprobe -and $e.process_kprobe.process.pod.namespace -eq "nodejs-app") {
+             $k = $e.process_kprobe
+             Write-Host "[$($e.time.Substring(11,8))] [CD]    cd $($k.args[0].string_arg)" -ForegroundColor Cyan
+         }
+     }
+     ```
+
+   - **Method C (Raw JSON stream)**:
+     ```bash
+     kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f
+     ```
 
    Whenever any command runs in the ArgoCD terminal (e.g. `cat /etc/passwd`, `env`), Tetragon records:
    ```json
