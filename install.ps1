@@ -10,7 +10,7 @@ Write-Host " 🚀 Starting Full Environment Installation & Setup" -ForegroundCol
 Write-Host "=======================================================`n" -ForegroundColor Cyan
 
 # 1. Check Prerequisites
-Write-Host "[1/7] Checking prerequisites..." -ForegroundColor Yellow
+Write-Host "[1/9] Checking prerequisites..." -ForegroundColor Yellow
 if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
     Write-Error "kubectl is not installed or not in PATH. Please install kubectl first."
 }
@@ -20,7 +20,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 Write-Host "  ✔ kubectl and docker found." -ForegroundColor Green
 
 # 2. Build local Docker image
-Write-Host "`n[2/7] Building local Docker image (nodejs-hello-world:v1.0.0)..." -ForegroundColor Yellow
+Write-Host "`n[2/9] Building local Docker image (nodejs-hello-world:v1.0.0)..." -ForegroundColor Yellow
 if (Get-Command minikube -ErrorAction SilentlyContinue) {
     $minikubeStatus = minikube status --format "{{.Host}}" 2>$null
     if ($minikubeStatus -eq "Running") {
@@ -32,7 +32,7 @@ docker build -t nodejs-hello-world:v1.0.0 ./app
 Write-Host "  ✔ Docker image built successfully." -ForegroundColor Green
 
 # 3. Install ArgoCD
-Write-Host "`n[3/7] Setting up ArgoCD..." -ForegroundColor Yellow
+Write-Host "`n[3/9] Setting up ArgoCD..." -ForegroundColor Yellow
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 Write-Host "  -> Waiting for ArgoCD server to be ready..." -ForegroundColor Gray
@@ -40,14 +40,14 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 Write-Host "  ✔ ArgoCD installed and running." -ForegroundColor Green
 
 # 4. Enable ArgoCD Web Terminal & RBAC
-Write-Host "`n[4/7] Configuring ArgoCD Web Terminal & Exec RBAC..." -ForegroundColor Yellow
+Write-Host "`n[4/9] Configuring ArgoCD Web Terminal & Exec RBAC..." -ForegroundColor Yellow
 kubectl apply -f argocd/terminal-config.yaml
 kubectl rollout restart deployment argocd-server -n argocd
 kubectl rollout status deployment argocd-server -n argocd --timeout=120s
 Write-Host "  ✔ ArgoCD Web Terminal enabled." -ForegroundColor Green
 
 # 5. Install Tetragon CRDs and Helm Chart
-Write-Host "`n[5/7] Installing Tetragon eBPF Kernel Audit Engine..." -ForegroundColor Yellow
+Write-Host "`n[5/9] Installing Tetragon eBPF Kernel Audit Engine..." -ForegroundColor Yellow
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
 
@@ -62,22 +62,28 @@ if (Get-Command helm -ErrorAction SilentlyContinue) {
 }
 
 # 6. Apply Tetragon TracingPolicy
-Write-Host "`n[6/7] Applying Tetragon Tracing Policy (kprobes: sys_execve, sys_chdir)..." -ForegroundColor Yellow
+Write-Host "`n[6/9] Applying Tetragon Tracing Policy (kprobes: sys_execve, sys_chdir)..." -ForegroundColor Yellow
 kubectl apply -f k8s/audit/tetragon-terminal-audit-policy.yaml
 Write-Host "  ✔ TracingPolicy applied." -ForegroundColor Green
 
-# 7. Deploy Node.js Application
-Write-Host "`n[7/8] Deploying Node.js Hello World application..." -ForegroundColor Yellow
+# 7. Deploy Node.js Application Manifests
+Write-Host "`n[7/9] Deploying Node.js Hello World application..." -ForegroundColor Yellow
 kubectl apply -k k8s/
 kubectl rollout status deployment/nodejs-hello-world -n nodejs-app --timeout=180s
 Write-Host "  ✔ Application deployed successfully." -ForegroundColor Green
 
 # 8. Deploy Prometheus + Loki + Grafana Observability Stack
-Write-Host "`n[8/8] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..." -ForegroundColor Yellow
+Write-Host "`n[8/9] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..." -ForegroundColor Yellow
 kubectl apply -k k8s/monitoring/
 kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
 kubectl rollout status deployment/grafana -n monitoring --timeout=180s
 Write-Host "  ✔ Prometheus & Grafana stack running." -ForegroundColor Green
+
+# 9. Register GitOps Applications in ArgoCD
+Write-Host "`n[9/9] Registering GitOps Applications in ArgoCD..." -ForegroundColor Yellow
+kubectl apply -f argocd/application.yaml
+kubectl apply -f argocd/monitoring-application.yaml
+Write-Host "  ✔ ArgoCD Applications registered (nodejs-hello-world & cluster-monitoring)." -ForegroundColor Green
 
 # Get ArgoCD Admin Password
 $argocdPassword = ""

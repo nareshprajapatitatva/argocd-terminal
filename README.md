@@ -52,7 +52,8 @@ Argo-terminal/
 │       ├── fluentbit-audit-config.yaml          # Log shipper to central SIEM
 │       └── PRODUCTION_AUDIT_GUIDE.md           # In-depth architectural audit documentation
 ├── argocd/
-│   ├── application.yaml       # ArgoCD Application Custom Resource (GitOps sync config)
+│   ├── application.yaml       # ArgoCD Application for Node.js API (tracks k8s/)
+│   ├── monitoring-application.yaml # ArgoCD Application for Prometheus/Grafana (tracks k8s/monitoring/)
 │   └── terminal-config.yaml   # Web Terminal feature flag, RBAC, and cluster roles
 ├── COMMAND_AUDIT_MATRIX.md    # Comprehensive table of commands audited by Tetragon
 ├── install.ps1                # One-command installer for Windows PowerShell

@@ -13,14 +13,14 @@ echo "======================================================="
 echo ""
 
 # 1. Check Prerequisites
-echo "[1/7] Checking prerequisites..."
+echo "[1/9] Checking prerequisites..."
 command -v kubectl >/dev/null 2>&1 || { echo "kubectl is not installed. Aborting." >&2; exit 1; }
 command -v docker >/dev/null 2>&1 || { echo "docker is not installed. Aborting." >&2; exit 1; }
 echo "  ✔ kubectl and docker found."
 
 # 2. Build local Docker image
 echo ""
-echo "[2/7] Building local Docker image (nodejs-hello-world:v1.0.0)..."
+echo "[2/9] Building local Docker image (nodejs-hello-world:v1.0.0)..."
 if command -v minikube >/dev/null 2>&1; then
     if [ "$(minikube status --format '{{.Host}}' 2>/dev/null || true)" = "Running" ]; then
         echo "  -> Minikube detected! Configuring Minikube Docker environment..."
@@ -32,7 +32,7 @@ echo "  ✔ Docker image built successfully."
 
 # 3. Install ArgoCD
 echo ""
-echo "[3/7] Setting up ArgoCD..."
+echo "[3/9] Setting up ArgoCD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 echo "  -> Waiting for ArgoCD server to be ready..."
@@ -41,7 +41,7 @@ echo "  ✔ ArgoCD installed and running."
 
 # 4. Enable ArgoCD Web Terminal & RBAC
 echo ""
-echo "[4/7] Configuring ArgoCD Web Terminal & Exec RBAC..."
+echo "[4/9] Configuring ArgoCD Web Terminal & Exec RBAC..."
 kubectl apply -f argocd/terminal-config.yaml
 kubectl rollout restart deployment argocd-server -n argocd
 kubectl rollout status deployment argocd-server -n argocd --timeout=120s
@@ -49,7 +49,7 @@ echo "  ✔ ArgoCD Web Terminal enabled."
 
 # 5. Install Tetragon CRDs and Helm Chart
 echo ""
-echo "[5/7] Installing Tetragon eBPF Kernel Audit Engine..."
+echo "[5/9] Installing Tetragon eBPF Kernel Audit Engine..."
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/v1.2.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
 
@@ -65,24 +65,31 @@ fi
 
 # 6. Apply Tetragon TracingPolicy
 echo ""
-echo "[6/7] Applying Tetragon Tracing Policy (kprobes: sys_execve, sys_chdir)..."
+echo "[6/9] Applying Tetragon Tracing Policy (kprobes: sys_execve, sys_chdir)..."
 kubectl apply -f k8s/audit/tetragon-terminal-audit-policy.yaml
 echo "  ✔ TracingPolicy applied."
 
 # 7. Deploy Node.js Application
 echo ""
-echo "[7/8] Deploying Node.js Hello World application..."
+echo "[7/9] Deploying Node.js Hello World application..."
 kubectl apply -k k8s/
 kubectl rollout status deployment/nodejs-hello-world -n nodejs-app --timeout=180s
 echo "  ✔ Application deployed successfully."
 
 # 8. Deploy Prometheus + Loki + Grafana Observability Stack
 echo ""
-echo "[8/8] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..."
+echo "[8/9] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..."
 kubectl apply -k k8s/monitoring/
 kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
 kubectl rollout status deployment/grafana -n monitoring --timeout=180s
 echo "  ✔ Prometheus & Grafana stack running."
+
+# 9. Register GitOps Applications in ArgoCD
+echo ""
+echo "[9/9] Registering GitOps Applications in ArgoCD..."
+kubectl apply -f argocd/application.yaml
+kubectl apply -f argocd/monitoring-application.yaml
+echo "  ✔ ArgoCD Applications registered (nodejs-hello-world & cluster-monitoring)."
 
 # Retrieve password
 ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d || echo "(already changed)")
