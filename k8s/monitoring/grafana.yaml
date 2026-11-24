@@ -113,7 +113,8 @@ data:
           "title": "Live Terminal & Application Audit Logs (Loki)",
           "type": "logs",
           "targets": [
-            { "expr": "{namespace=\"nodejs-app\"} or {job=\"direct-logs\"} |= \"nodejs\"", "refId": "A" }
+            { "expr": "{namespace=\"nodejs-app\"}", "refId": "A" },
+            { "expr": "{job=\"direct-logs\"} |= \"nodejs\"", "refId": "B" }
           ]
         },
         {
@@ -123,7 +124,8 @@ data:
           "title": "Raw Tetragon Kernel Audit Stream (eBPF)",
           "type": "logs",
           "targets": [
-            { "expr": "{namespace=\"kube-system\"} |= \"process_exec\" or {job=\"direct-logs\"} |= \"process_exec\"", "refId": "A" }
+            { "expr": "{namespace=\"kube-system\"} |= \"process_exec\"", "refId": "A" },
+            { "expr": "{job=\"direct-logs\"} |= \"process_exec\"", "refId": "B" }
           ]
         }
       ],
