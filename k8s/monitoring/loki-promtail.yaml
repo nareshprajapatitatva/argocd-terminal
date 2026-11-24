@@ -125,12 +125,12 @@ data:
             target_label: container
           - source_labels: [__meta_kubernetes_pod_label_app]
             target_label: app
-          - source_labels: [__meta_kubernetes_pod_uid]
-            target_label: uid
-          - source_labels: [__meta_kubernetes_pod_container_name]
+          - source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
             action: replace
-            replacement: /var/log/pods/*_$1/*.log
             separator: /
+            replacement: /var/log/pods/*$1/$2/*.log
             target_label: __path__
 ---
 apiVersion: v1
@@ -201,8 +201,8 @@ spec:
               mountPath: /etc/promtail
             - name: run
               mountPath: /run/promtail
-            - name: pods-logs
-              mountPath: /var/log/pods
+            - name: varlog
+              mountPath: /var/log
               readOnly: true
       volumes:
         - name: config
@@ -210,6 +210,6 @@ spec:
             name: promtail-config
         - name: run
           emptyDir: {}
-        - name: pods-logs
+        - name: varlog
           hostPath:
-            path: /var/log/pods
+            path: /var/log
