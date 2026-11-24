@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-hello-world-svc
+  namespace: nodejs-app
+  labels:
+    app: nodejs-hello-world
+spec:
+  type: ClusterIP
+  selector:
+    app: nodejs-hello-world
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
