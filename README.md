@@ -163,7 +163,27 @@ ArgoCD will automatically:
 
 ---
 
-### Step 5: Test the Deployed API
+### Step 5: (Optional) Enable ArgoCD Web Terminal (Exec Terminal in UI)
+
+ArgoCD includes a built-in web terminal to `exec` into running pod containers directly from the web browser. It is disabled by default for security.
+
+To enable it:
+
+1. Apply the terminal configuration (enables `exec.enabled: "true"`, ArgoCD RBAC, and Kubernetes cluster roles):
+   ```bash
+   kubectl apply -f argocd/terminal-config.yaml
+   ```
+
+2. Restart the `argocd-server` deployment to pick up the new configuration:
+   ```bash
+   kubectl rollout restart deployment argocd-server -n argocd
+   ```
+
+3. Open the ArgoCD Web UI (`https://localhost:8080`), click on your `nodejs-hello-world` application, click on any running Pod, and you will see the **Terminal** tab alongside Summary, Logs, and Events. You can now execute commands directly inside the container from your browser!
+
+---
+
+### Step 6: Test the Deployed API
 
 1. Verify the pods are running:
    ```bash
