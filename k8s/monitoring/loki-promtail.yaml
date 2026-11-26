@@ -136,7 +136,7 @@ data:
             replacement: /var/log/pods/*$1/$2/*.log
             target_label: __path__
 
-      # Direct fallback job: tails every pod log directly off the node filesystem
+      # Direct pod log collector: extracts namespace, pod, and container from the file path
       - job_name: direct-pod-logs
         static_configs:
           - targets:
@@ -145,6 +145,14 @@ data:
               job: direct-logs
               __path__: /var/log/pods/*/*/*.log
         pipeline_stages:
+          # Extract namespace, pod, container from path: /var/log/pods/<namespace>_<pod>_<uid>/<container>/*.log
+          - regex:
+              source: filename
+              expression: '^/var/log/pods/(?P<namespace>[^_]+)_(?P<pod>[^_]+)_[^/]+/(?P<container>[^/]+)/.*\.log$'
+          - labels:
+              namespace:
+              pod:
+              container:
           - cri: {}
 ---
 apiVersion: v1
