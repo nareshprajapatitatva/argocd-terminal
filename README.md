@@ -15,14 +15,39 @@ You can deploy the entire setup (Docker build, ArgoCD, Web Terminal, Tetragon eB
 
 - **Windows PowerShell**:
   ```powershell
-  .\install.ps1
+  .\install.ps1              # Run full installation
+  .\install.ps1 -PortForward # Run installation and immediately start all port forwards
   ```
 
 - **Linux / macOS / WSL (Bash)**:
   ```bash
-  chmod +x install.sh
-  ./install.sh
+  chmod +x install.sh port-forward.sh
+  ./install.sh                # Run full installation
+  ./install.sh --port-forward # Run installation and immediately start all port forwards
   ```
+
+### 🌐 One-Command Automated Port Forwarding
+
+Instead of manually running multiple `kubectl port-forward` commands in separate terminals, use the dedicated port-forward script to start all services in parallel:
+
+- **Windows PowerShell**:
+  ```powershell
+  .\port-forward.ps1              # Starts all port forwards in parallel
+  .\port-forward.ps1 -OpenBrowser # Starts port forwards and opens browser tabs
+  .\port-forward.ps1 -Stop        # Stops all active port forwards cleanly
+  ```
+
+- **Linux / macOS / WSL (Bash)**:
+  ```bash
+  ./port-forward.sh        # Starts all port forwards in parallel
+  ./port-forward.sh --stop # Stops all active port forwards
+  ```
+
+This automatically opens:
+1. **ArgoCD Web UI**: `https://127.0.0.1:8080` (admin)
+2. **Grafana Audit Dashboard**: `http://localhost:3000` (admin/admin)
+3. **Prometheus Metrics**: `http://localhost:9090`
+4. **Node.js Hello API**: `http://localhost:8000`
 
 ---
 
@@ -58,6 +83,8 @@ Argo-terminal/
 ├── COMMAND_AUDIT_MATRIX.md    # Comprehensive table of commands audited by Tetragon
 ├── install.ps1                # One-command installer for Windows PowerShell
 ├── install.sh                 # One-command installer for Linux/macOS/WSL
+├── port-forward.ps1           # Automated parallel port-forwarding for Windows
+├── port-forward.sh            # Automated parallel port-forwarding for Linux/macOS/WSL
 ├── .gitignore
 └── README.md
 ```

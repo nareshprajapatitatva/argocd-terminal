@@ -1,7 +1,16 @@
 # ==============================================================================
 # Automated Setup Script: Node.js Hello World on Kubernetes with ArgoCD and Tetragon Audit
 # OS: Windows (PowerShell)
+# Usage:
+#   .\install.ps1              # Run full installation
+#   .\install.ps1 -PortForward # Run installation and immediately start all port forwards
+#   .\install.ps1 -OpenBrowser # Run installation, start port forwards, and open browser
 # ==============================================================================
+
+param (
+    [switch]$PortForward,
+    [switch]$OpenBrowser
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -103,27 +112,28 @@ Write-Host "=======================================================" -Foreground
 Write-Host " [SUCCESS] INSTALLATION COMPLETED SUCCESSFULLY!" -ForegroundColor Green
 Write-Host "=======================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "--- ACCESS INFORMATION ---" -ForegroundColor Cyan
-Write-Host "1. ArgoCD Web UI:" -ForegroundColor White
-Write-Host "   Port-Forward:  kubectl port-forward --address 127.0.0.1 svc/argocd-server -n argocd 8080:443" -ForegroundColor Gray
-Write-Host "   URL:           https://127.0.0.1:8080 (or https://localhost:8080)" -ForegroundColor Gray
-Write-Host "   Username:      admin" -ForegroundColor Gray
-Write-Host "   Password:      $argocdPassword" -ForegroundColor Yellow
-
-Write-Host "`n2. Grafana Audit and Monitoring Dashboard:" -ForegroundColor White
-Write-Host "   Port-Forward:  kubectl port-forward svc/grafana-service -n monitoring 3000:3000" -ForegroundColor Gray
-Write-Host "   URL:           http://localhost:3000 (auto-logs in with pre-built Audit Dashboard)" -ForegroundColor Yellow
-Write-Host "   Credentials:   admin / admin" -ForegroundColor Gray
-
-Write-Host "`n3. Prometheus Metrics UI:" -ForegroundColor White
-Write-Host "   Port-Forward:  kubectl port-forward svc/prometheus-service -n monitoring 9090:9090" -ForegroundColor Gray
-Write-Host "   URL:           http://localhost:9090" -ForegroundColor Gray
-
-Write-Host "`n4. Node.js Hello World API:" -ForegroundColor White
-Write-Host "   Port-Forward:  kubectl port-forward svc/nodejs-hello-world-svc -n nodejs-app 8000:80" -ForegroundColor Gray
-Write-Host "   Test URL:      curl http://localhost:8000/" -ForegroundColor Gray
-
-Write-Host "`n5. Live Terminal Audit Logs (CLI View):" -ForegroundColor White
-Write-Host "   Command:       kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
-Write-Host "=======================================================" -ForegroundColor Cyan
+Write-Host "--- AUTOMATED PORT FORWARDING ---" -ForegroundColor Cyan
+Write-Host "To start all port forwards automatically in parallel, run:" -ForegroundColor White
+Write-Host "   .\port-forward.ps1" -ForegroundColor Yellow
+Write-Host "   .\port-forward.ps1 -OpenBrowser    (starts port forwards and opens browser tabs)" -ForegroundColor Gray
+Write-Host "   .\port-forward.ps1 -Stop           (stops all active port forwards)" -ForegroundColor Gray
 Write-Host ""
+Write-Host "--- ACCESS URLS & CREDENTIALS ---" -ForegroundColor Cyan
+Write-Host "1. ArgoCD Web UI:         https://127.0.0.1:8080 (or https://localhost:8080)" -ForegroundColor White
+Write-Host "   Credentials:           admin / $argocdPassword" -ForegroundColor Yellow
+Write-Host "2. Grafana Dashboard:     http://localhost:3000" -ForegroundColor White
+Write-Host "   Credentials:           admin / admin (or auto-login)" -ForegroundColor Yellow
+Write-Host "3. Prometheus Metrics:    http://localhost:9090" -ForegroundColor White
+Write-Host "4. Node.js Hello API:     http://localhost:8000" -ForegroundColor White
+Write-Host ""
+Write-Host "5. Live Terminal Audit Logs (CLI View):" -ForegroundColor White
+Write-Host "   Command:               kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
+Write-Host "=======================================================`n" -ForegroundColor Cyan
+
+if ($PortForward -or $OpenBrowser) {
+    if ($OpenBrowser) {
+        & "$PSScriptRoot\port-forward.ps1" -OpenBrowser
+    } else {
+        & "$PSScriptRoot\port-forward.ps1"
+    }
+}

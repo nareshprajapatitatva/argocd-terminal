@@ -132,6 +132,7 @@ data:
               - __meta_kubernetes_pod_container_name
             action: replace
             separator: /
+            regex: (.+)/(.+)
             replacement: /var/log/pods/*$1/$2/*.log
             target_label: __path__
 
@@ -143,6 +144,8 @@ data:
             labels:
               job: direct-logs
               __path__: /var/log/pods/*/*/*.log
+        pipeline_stages:
+          - cri: {}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -215,6 +218,9 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -224,3 +230,6 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
