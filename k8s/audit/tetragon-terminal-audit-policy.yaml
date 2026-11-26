@@ -8,51 +8,22 @@ spec:
     matchLabels:
       app: nodejs-hello-world
   kprobes:
-    # 1. Capture external commands (ls, cat, whoami, rm, curl, etc.)
-    # Trigger on:
-    #   a) The interactive shell itself when opened via ArgoCD Web Terminal (/bin/sh, /bin/bash)
-    #   b) Any command spawned by that interactive terminal shell
+    # 1. Capture external commands executed inside the container
     - call: "sys_execve"
       syscall: true
       args:
         - index: 0
           type: "string" # Path of the executed binary
       selectors:
-        # Match when the binary being executed is a shell (ArgoCD Web Terminal session start)
-        - matchBinaries:
-            - operator: "In"
-              values:
-                - "/bin/sh"
-                - "/bin/bash"
-                - "/usr/bin/sh"
-                - "/usr/bin/bash"
-          matchActions:
+        - matchActions:
             - action: Post
 
-        # Match any command executed inside the interactive terminal shell
-        - matchParentBinaries:
-            - operator: "In"
-              values:
-                - "/bin/sh"
-                - "/bin/bash"
-                - "/usr/bin/sh"
-                - "/usr/bin/bash"
-          matchActions:
-            - action: Post
-
-    # 2. Capture all 'cd' directory navigation inside the terminal shell
+    # 2. Capture all 'cd' directory navigation!
     - call: "sys_chdir"
       syscall: true
       args:
         - index: 0
-          type: "string" # Directory path user navigated to
+          type: "string" # Directory path navigated to
       selectors:
-        - matchBinaries:
-            - operator: "In"
-              values:
-                - "/bin/sh"
-                - "/bin/bash"
-                - "/usr/bin/sh"
-                - "/usr/bin/bash"
-          matchActions:
+        - matchActions:
             - action: Post
