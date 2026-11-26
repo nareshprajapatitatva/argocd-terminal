@@ -3,27 +3,56 @@ kind: TracingPolicy
 metadata:
   name: terminal-command-audit
 spec:
-  # Target the pods belonging to our Node.js application
+  # Target only the pods belonging to our Node.js application
   podSelector:
     matchLabels:
       app: nodejs-hello-world
   kprobes:
-    # 1. Capture external commands (ls, cat, node, rm, curl, etc.)
+    # 1. Capture external commands (ls, cat, whoami, rm, curl, etc.)
+    # Trigger on:
+    #   a) The interactive shell itself when opened via ArgoCD Web Terminal (/bin/sh, /bin/bash)
+    #   b) Any command spawned by that interactive terminal shell
     - call: "sys_execve"
       syscall: true
       args:
         - index: 0
           type: "string" # Path of the executed binary
       selectors:
-        - matchActions:
+        # Match when the binary being executed is a shell (ArgoCD Web Terminal session start)
+        - matchBinaries:
+            - operator: "In"
+              values:
+                - "/bin/sh"
+                - "/bin/bash"
+                - "/usr/bin/sh"
+                - "/usr/bin/bash"
+          matchActions:
             - action: Post
 
-    # 2. Capture all 'cd' directory navigation!
+        # Match any command executed inside the interactive terminal shell
+        - matchParentBinaries:
+            - operator: "In"
+              values:
+                - "/bin/sh"
+                - "/bin/bash"
+                - "/usr/bin/sh"
+                - "/usr/bin/bash"
+          matchActions:
+            - action: Post
+
+    # 2. Capture all 'cd' directory navigation inside the terminal shell
     - call: "sys_chdir"
       syscall: true
       args:
         - index: 0
           type: "string" # Directory path user navigated to
       selectors:
-        - matchActions:
+        - matchBinaries:
+            - operator: "In"
+              values:
+                - "/bin/sh"
+                - "/bin/bash"
+                - "/usr/bin/sh"
+                - "/usr/bin/bash"
+          matchActions:
             - action: Post
