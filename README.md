@@ -73,8 +73,7 @@ Argo-terminal/
 │   │   └── kustomization.yaml # Kustomize bundle for monitoring
 │   └── audit/
 │       ├── tetragon-terminal-audit-policy.yaml  # eBPF TracingPolicy for command auditing
-│       ├── tetragon-values.yaml                 # Helm compatibility values for Tetragon
-│       ├── fluentbit-audit-config.yaml          # Log shipper to central SIEM
+│       ├── tetragon-values.yaml                 # Helm values (operator disabled for minikube)
 │       └── PRODUCTION_AUDIT_GUIDE.md           # In-depth architectural audit documentation
 ├── argocd/
 │   ├── application.yaml       # ArgoCD Application for Node.js API (tracks k8s/)
@@ -348,7 +347,7 @@ Container users can easily delete bash history (`history -c` or `unset HISTFILE`
    ```
 
 #### Layer 3: SIEM Log Shipping & Correlation
-- Deploy Fluent Bit using [`k8s/audit/fluentbit-audit-config.yaml`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/audit/fluentbit-audit-config.yaml) to forward both `audit.argocd` and `audit.tetragon` streams to your central SIEM (Elasticsearch, Splunk, Datadog, or Grafana Loki).
+- Forward both `argocd-server` audit logs and Tetragon kernel audit events directly to your central SIEM (Splunk, Datadog, or Grafana Loki) via Promtail DaemonSet.
 - Correlate by matching `podName` + `time_window` to produce a single audit timeline linking the authenticated user to every executed command.
 - For complete architecture details, see [`k8s/audit/PRODUCTION_AUDIT_GUIDE.md`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/k8s/audit/PRODUCTION_AUDIT_GUIDE.md).
 
