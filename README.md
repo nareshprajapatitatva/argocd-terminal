@@ -440,3 +440,25 @@ Click **Explore** on the left menu, select **Loki** as the datasource, and run q
    git push origin main
    ```
 3. Check ArgoCD or run `kubectl get pods -n nodejs-app`. ArgoCD automatically detects the Git change and reconciles the cluster to run 4 pods without manual `kubectl apply`.
+
+---
+
+## Clean Teardown & Reinstallation
+
+To terminate everything and return the cluster to a completely clean state:
+
+```powershell
+# Windows PowerShell
+.\uninstall.ps1
+```
+
+```bash
+# Linux / macOS / WSL
+chmod +x ./uninstall.sh
+./uninstall.sh
+```
+
+To redeploy from scratch afterwards:
+```powershell
+.\install.ps1
+```
