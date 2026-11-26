@@ -123,7 +123,7 @@ data:
           "title": "ArgoCD Web Terminal Executed Commands (Tetragon eBPF)",
           "type": "logs",
           "targets": [
-            { "expr": "{job=\"tetragon-audit\"} |= \"nodejs-app\" | json | line_format \"[{{process_exec_process_pod_name}}] User(UID: {{process_exec_process_uid}}) CMD: {{process_exec_process_binary}} {{process_exec_process_arguments}}\"", "refId": "A" }
+            { "expr": "{job=\"tetragon-audit\"} |= \"nodejs-app\" | json | line_format \"{{.log}}\" | json binary=\"process_exec.process.binary\", args=\"process_exec.process.arguments\", pod=\"process_exec.process.pod.name\", uid=\"process_exec.process.uid\" | line_format \"[{{.pod}}] (UID: {{.uid}}) Command: {{.binary}} {{.args}}\"", "refId": "A" }
           ]
         }
       ],
