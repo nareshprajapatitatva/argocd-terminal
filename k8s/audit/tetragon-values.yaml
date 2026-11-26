@@ -4,8 +4,19 @@ tetragon:
     # Disable native appArmorProfile to avoid schema validation errors on K8s < 1.30
     appArmorProfile: null
 
+  enableK8sAPI: true
+  enablePolicyFilter: true
+
+  # Default-Deny Model for Export Logs:
+  # Drops ALL background cluster logs, kube-system noise, container starts, etc.
+  # ONLY exports events originating from the "nodejs-app" namespace.
+  # As you add more namespaces or policies later, simply add them to this list!
+  exportAllowList: |
+    {"namespace": ["nodejs-app"]}
+
 # Disable tetragon-operator: daemonset handles all eBPF tracing policies and event generation
 # Disabling saves cluster memory and prevents operator crashloops on local clusters
 tetragonOperator:
   enabled: false
+
 
