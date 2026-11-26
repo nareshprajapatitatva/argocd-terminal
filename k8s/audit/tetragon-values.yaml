@@ -7,12 +7,11 @@ tetragon:
   enableK8sAPI: true
   enablePolicyFilter: true
 
-  # Default-Deny Model for Export Logs:
-  # Drops ALL background cluster logs, kube-system noise, container starts, etc.
-  # ONLY exports events originating from the "nodejs-app" namespace.
-  # As you add more namespaces or policies later, simply add them to this list!
+  # COMPLETE SILENCE / ZERO LOGS MODE:
+  # Setting an empty allowlist tells Tetragon to drop 100% of events.
+  # Zero logs will be emitted to stdout or exported until you explicitly add an event or namespace.
   exportAllowList: |
-    {"namespace": ["nodejs-app"]}
+    {"namespace": ["none"]}
 
 # Disable tetragon-operator: daemonset handles all eBPF tracing policies and event generation
 # Disabling saves cluster memory and prevents operator crashloops on local clusters
