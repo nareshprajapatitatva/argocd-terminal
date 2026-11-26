@@ -9,16 +9,22 @@ spec:
       app: nodejs-hello-world
   kprobes:
     # 1. Capture external commands executed inside the container
+    # Exclude the node binary itself so normal server operation does not generate noise
     - call: "sys_execve"
       syscall: true
       args:
         - index: 0
           type: "string" # Path of the executed binary
       selectors:
-        - matchActions:
+        - matchBinaries:
+            - operator: "NotIn"
+              values:
+                - "/usr/local/bin/node"
+                - "/usr/bin/node"
+          matchActions:
             - action: Post
 
-    # 2. Capture all 'cd' directory navigation!
+    # 2. Capture all 'cd' directory navigation inside the terminal
     - call: "sys_chdir"
       syscall: true
       args:
