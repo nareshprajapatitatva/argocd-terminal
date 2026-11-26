@@ -136,7 +136,31 @@ data:
             replacement: /var/log/pods/*$1/$2/*.log
             target_label: __path__
 
-      # Direct pod log collector: extracts namespace, pod, and container from the file path
+      # Scrape Tetragon export-stdout logs and extract the target pod's namespace & binary
+      - job_name: tetragon-export
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: tetragon-audit
+              __path__: /var/log/pods/kube-system_tetragon*/*export*/*.log
+        pipeline_stages:
+          - cri: {}
+          # Parse inner Tetragon JSON event
+          - json:
+              expressions:
+                event_type: process_exec
+                target_namespace: process_exec.process.pod.namespace
+                target_pod: process_exec.process.pod.name
+                binary: process_exec.process.binary
+                args: process_exec.process.arguments
+                parent_binary: process_exec.parent.binary
+          # Promote target_namespace and binary to searchable Loki labels
+          - labels:
+              target_namespace:
+              binary:
+
+      # Direct pod log collector for application containers
       - job_name: direct-pod-logs
         static_configs:
           - targets:

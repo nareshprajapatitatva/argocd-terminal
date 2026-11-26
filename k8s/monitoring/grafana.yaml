@@ -120,10 +120,10 @@ data:
           "datasource": { "type": "loki", "uid": "Loki" },
           "gridPos": { "h": 12, "w": 24, "x": 0, "y": 26 },
           "id": 7,
-          "title": "Raw Tetragon Terminal Audit Stream (Filtered: nodejs-app terminal)",
+          "title": "ArgoCD Web Terminal Executed Commands (Tetragon eBPF)",
           "type": "logs",
           "targets": [
-            { "expr": "{job=~\"kubernetes-pods|direct-logs\"} |= \"process_exec\" |= \"nodejs-app\"", "refId": "A" }
+            { "expr": "{job=\"tetragon-audit\", target_namespace=\"nodejs-app\"}", "refId": "A" }
           ]
         }
       ],
