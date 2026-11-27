@@ -121,13 +121,14 @@ Write-Host ""
 Write-Host "--- ACCESS URLS & CREDENTIALS ---" -ForegroundColor Cyan
 Write-Host "1. ArgoCD Web UI:         https://127.0.0.1:8080 (or https://localhost:8080)" -ForegroundColor White
 Write-Host "   Credentials:           admin / $argocdPassword" -ForegroundColor Yellow
-Write-Host "2. Grafana Dashboard:     http://localhost:3000" -ForegroundColor White
-Write-Host "   Credentials:           admin / admin (or auto-login)" -ForegroundColor Yellow
-Write-Host "3. Prometheus Metrics:    http://localhost:9090" -ForegroundColor White
-Write-Host "4. Node.js Hello API:     http://localhost:8000" -ForegroundColor White
+Write-Host "2. Node.js Hello API:     http://localhost:8000" -ForegroundColor White
+Write-Host "3. LocalStack AWS:        http://localhost:4566" -ForegroundColor White
 Write-Host ""
-Write-Host "5. Live Terminal Audit Logs (CLI View):" -ForegroundColor White
-Write-Host "   Command:               kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
+Write-Host "--- AUDIT LOGGING & VERIFICATION ---" -ForegroundColor Cyan
+Write-Host "1. CloudWatch Logs (LocalStack):" -ForegroundColor White
+Write-Host "   View Command:          .\get-cloudwatch-logs.ps1" -ForegroundColor Yellow
+Write-Host "2. Live eBPF Kernel Events (Direct CLI Stream):" -ForegroundColor White
+Write-Host "   View Command:          kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
 Write-Host "=======================================================`n" -ForegroundColor Cyan
 
 if ($PortForward -or $OpenBrowser) {

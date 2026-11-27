@@ -76,20 +76,20 @@ kubectl apply -k k8s/
 kubectl rollout status deployment/nodejs-hello-world -n nodejs-app --timeout=180s
 echo "  ✔ Application deployed successfully."
 
-# 8. Deploy Prometheus + Loki + Grafana Observability Stack
+# 8. Deploy LocalStack and AWS Fluent Bit
 echo ""
-echo "[8/9] Deploying Prometheus, Loki, and Grafana (Monitoring & Audit Dashboard)..."
-kubectl apply -k k8s/monitoring/
-kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
-kubectl rollout status deployment/grafana -n monitoring --timeout=180s
-echo "  ✔ Prometheus & Grafana stack running."
+echo "[8/9] Deploying LocalStack and AWS Fluent Bit (CloudWatch Log Shipper)..."
+kubectl apply -f k8s/localstack/localstack.yaml
+kubectl rollout status deployment/localstack -n localstack --timeout=180s
+kubectl apply -f k8s/audit/aws-fluent-bit.yaml
+kubectl rollout status ds/aws-fluent-bit -n kube-system --timeout=120s
+echo "  ✔ LocalStack and AWS Fluent Bit running."
 
-# 9. Register GitOps Applications in ArgoCD
+# 9. Register GitOps Application in ArgoCD
 echo ""
-echo "[9/9] Registering GitOps Applications in ArgoCD..."
+echo "[9/9] Registering GitOps Application in ArgoCD..."
 kubectl apply -f argocd/application.yaml
-kubectl apply -f argocd/monitoring-application.yaml
-echo "  ✔ ArgoCD Applications registered (nodejs-hello-world & cluster-monitoring)."
+echo "  ✔ ArgoCD Application registered (nodejs-hello-world)."
 
 # Retrieve password
 ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d || echo "(already changed)")
@@ -107,13 +107,14 @@ echo ""
 echo "--- ACCESS URLS & CREDENTIALS ---"
 echo "1. ArgoCD Web UI:         https://127.0.0.1:8080 (or https://localhost:8080)"
 echo "   Credentials:           admin / $ARGOCD_PASSWORD"
-echo "2. Grafana Dashboard:     http://localhost:3000"
-echo "   Credentials:           admin / admin (or auto-login)"
-echo "3. Prometheus Metrics:    http://localhost:9090"
-echo "4. Node.js Hello API:     http://localhost:8000"
+echo "2. Node.js Hello API:     http://localhost:8000"
+echo "3. LocalStack AWS:        http://localhost:4566"
 echo ""
-echo "5. Live Terminal Audit Logs (CLI View):"
-echo "   Command:               kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app"
+echo "--- AUDIT LOGGING & VERIFICATION ---"
+echo "1. CloudWatch Logs (LocalStack):"
+echo "   View Command:          ./get-cloudwatch-logs.ps1 (or aws --endpoint-url=http://localhost:4566 logs ...)"
+echo "2. Live eBPF Kernel Events (Direct CLI Stream):"
+echo "   View Command:          kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app"
 echo "======================================================="
 echo ""
 

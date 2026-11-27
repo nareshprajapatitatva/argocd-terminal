@@ -26,13 +26,13 @@ spec:
     spec:
       containers:
         - name: localstack
-          image: localstack/localstack:latest
+          # Use stable community release that does not require an online auth token / login
+          image: localstack/localstack:3.8.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4566
               name: edge
           env:
-            # Enable only CloudWatch Logs service for lightweight local execution
             - name: SERVICES
               value: "logs"
             - name: DEBUG
@@ -44,8 +44,14 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 1000m
+              memory: 1024Mi
+          readinessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 15
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service

@@ -49,19 +49,14 @@ echo "  -> Starting ArgoCD Web UI on port 8080..."
 kubectl port-forward --address 127.0.0.1 svc/argocd-server -n argocd 8080:443 >/dev/null 2>&1 &
 PIDS+=($!)
 
-# 2. Grafana
-echo "  -> Starting Grafana Dashboard on port 3000..."
-kubectl port-forward svc/grafana-service -n monitoring 3000:3000 >/dev/null 2>&1 &
-PIDS+=($!)
-
-# 3. Prometheus
-echo "  -> Starting Prometheus Metrics on port 9090..."
-kubectl port-forward svc/prometheus-service -n monitoring 9090:9090 >/dev/null 2>&1 &
-PIDS+=($!)
-
-# 4. Node.js Hello API
+# 2. Node.js Hello API
 echo "  -> Starting Node.js Hello API on port 8000..."
 kubectl port-forward svc/nodejs-hello-world-svc -n nodejs-app 8000:80 >/dev/null 2>&1 &
+PIDS+=($!)
+
+# 3. LocalStack AWS
+echo "  -> Starting LocalStack AWS on port 4566..."
+kubectl port-forward svc/localstack -n localstack 4566:4566 >/dev/null 2>&1 &
 PIDS+=($!)
 
 sleep 1
@@ -73,10 +68,13 @@ echo "======================================================="
 echo ""
 echo "1. ArgoCD Web UI:         https://127.0.0.1:8080"
 echo "   Credentials:           admin / $ARGOCD_PASSWORD"
-echo "2. Grafana Audit & Logs:  http://localhost:3000"
-echo "   Credentials:           admin / admin (or auto-login)"
-echo "3. Prometheus Metrics:    http://localhost:9090"
-echo "4. Node.js Hello API:     http://localhost:8000"
+echo "2. Node.js Hello API:     http://localhost:8000"
+echo "3. LocalStack AWS:        http://localhost:4566"
+echo ""
+echo "--- AUDIT LOGGING & VERIFICATION ---"
+echo "View CloudWatch Logs:     ./get-cloudwatch-logs.ps1"
+echo "View Live eBPF Stream:    kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app"
+echo "======================================================="
 echo ""
 echo "Press Ctrl+C to stop all port forwards."
 echo "======================================================="
