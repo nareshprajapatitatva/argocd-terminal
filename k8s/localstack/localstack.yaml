@@ -1,0 +1,62 @@
+# ==============================================================================
+# LocalStack Free Community Edition for Local AWS CloudWatch Testing
+# Provides mock AWS CloudWatch Logs service at port 4566 inside Minikube
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: localstack
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: localstack
+  labels:
+    app: localstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: localstack
+  template:
+    metadata:
+      labels:
+        app: localstack
+    spec:
+      containers:
+        - name: localstack
+          image: localstack/localstack:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4566
+              name: edge
+          env:
+            # Enable only CloudWatch Logs service for lightweight local execution
+            - name: SERVICES
+              value: "logs"
+            - name: DEBUG
+              value: "0"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack
+  namespace: localstack
+spec:
+  type: ClusterIP
+  selector:
+    app: localstack
+  ports:
+    - name: edge
+      port: 4566
+      targetPort: 4566

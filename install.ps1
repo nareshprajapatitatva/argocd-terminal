@@ -83,18 +83,18 @@ kubectl apply -k k8s/
 kubectl rollout status deployment/nodejs-hello-world -n nodejs-app --timeout=180s
 Write-Host "  [OK] Application deployed successfully." -ForegroundColor Green
 
-# 8. Deploy Prometheus + Loki + Grafana Observability Stack
-Write-Host "`n[8/9] Deploying Prometheus, Loki, and Grafana (Monitoring and Audit Dashboard)..." -ForegroundColor Yellow
-kubectl apply -k k8s/monitoring/
-kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
-kubectl rollout status deployment/grafana -n monitoring --timeout=180s
-Write-Host "  [OK] Prometheus and Grafana stack running." -ForegroundColor Green
+# 8. Deploy LocalStack (Mock AWS CloudWatch) and AWS Fluent Bit
+Write-Host "`n[8/9] Deploying LocalStack and AWS Fluent Bit (CloudWatch Log Shipper)..." -ForegroundColor Yellow
+kubectl apply -f k8s/localstack/localstack.yaml
+kubectl rollout status deployment/localstack -n localstack --timeout=180s
+kubectl apply -f k8s/audit/aws-fluent-bit.yaml
+kubectl rollout status ds/aws-fluent-bit -n kube-system --timeout=120s
+Write-Host "  [OK] LocalStack and AWS Fluent Bit running." -ForegroundColor Green
 
-# 9. Register GitOps Applications in ArgoCD
-Write-Host "`n[9/9] Registering GitOps Applications in ArgoCD..." -ForegroundColor Yellow
+# 9. Register GitOps Application in ArgoCD
+Write-Host "`n[9/9] Registering GitOps Application in ArgoCD..." -ForegroundColor Yellow
 kubectl apply -f argocd/application.yaml
-kubectl apply -f argocd/monitoring-application.yaml
-Write-Host "  [OK] ArgoCD Applications registered (nodejs-hello-world and cluster-monitoring)." -ForegroundColor Green
+Write-Host "  [OK] ArgoCD Application registered (nodejs-hello-world)." -ForegroundColor Green
 
 # Get ArgoCD Admin Password
 $argocdPassword = ""

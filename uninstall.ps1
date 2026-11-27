@@ -16,17 +16,19 @@ if (Test-Path "port-forward.ps1") {
 }
 Write-Host "  [OK] Port-forwards stopped." -ForegroundColor Green
 
-# 2. Delete ArgoCD Applications first (with finalizer protection)
-Write-Host "`n[2/6] Deleting ArgoCD Applications..." -ForegroundColor Yellow
-kubectl delete application cluster-monitoring -n argocd --timeout=60s --ignore-not-found=true
+# 2. Delete ArgoCD Application
+Write-Host "`n[2/5] Deleting ArgoCD Application..." -ForegroundColor Yellow
 kubectl delete application nodejs-hello-world -n argocd --timeout=60s --ignore-not-found=true
-Write-Host "  [OK] ArgoCD Applications removed." -ForegroundColor Green
+Write-Host "  [OK] ArgoCD Application removed." -ForegroundColor Green
 
-# 3. Delete Application and Monitoring Namespaces (cascades all pods, services, configs)
-Write-Host "`n[3/6] Deleting nodejs-app and monitoring namespaces..." -ForegroundColor Yellow
+# 3. Delete Application and LocalStack Namespaces
+Write-Host "`n[3/5] Deleting nodejs-app and localstack namespaces..." -ForegroundColor Yellow
 kubectl delete namespace nodejs-app --timeout=120s --ignore-not-found=true
-kubectl delete namespace monitoring --timeout=120s --ignore-not-found=true
-Write-Host "  [OK] Namespaces deleted." -ForegroundColor Green
+kubectl delete namespace localstack --timeout=60s --ignore-not-found=true
+kubectl delete ds aws-fluent-bit -n kube-system --ignore-not-found=true
+kubectl delete cm aws-fluent-bit-config -n kube-system --ignore-not-found=true
+kubectl delete namespace monitoring --timeout=60s --ignore-not-found=true 2>$null
+Write-Host "  [OK] Namespaces and log shippers deleted." -ForegroundColor Green
 
 # 4. Uninstall Tetragon and remove TracingPolicies
 Write-Host "`n[4/6] Uninstalling Tetragon eBPF Engine..." -ForegroundColor Yellow

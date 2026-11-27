@@ -14,8 +14,6 @@ param (
 
 $services = @(
     @{ Name = "ArgoCD Web UI"; Namespace = "argocd"; Service = "svc/argocd-server"; Ports = "8080:443"; Url = "https://127.0.0.1:8080"; Address = "127.0.0.1" },
-    @{ Name = "Grafana Dashboard"; Namespace = "monitoring"; Service = "svc/grafana-service"; Ports = "3000:3000"; Url = "http://localhost:3000"; Address = "0.0.0.0" },
-    @{ Name = "Prometheus Metrics"; Namespace = "monitoring"; Service = "svc/prometheus-service"; Ports = "9090:9090"; Url = "http://localhost:9090"; Address = "0.0.0.0" },
     @{ Name = "Node.js Hello API"; Namespace = "nodejs-app"; Service = "svc/nodejs-hello-world-svc"; Ports = "8000:80"; Url = "http://localhost:8000"; Address = "0.0.0.0" }
 )
 
