@@ -43,11 +43,19 @@ Instead of manually running multiple `kubectl port-forward` commands in separate
   ./port-forward.sh --stop # Stops all active port forwards
   ```
 
-This automatically opens:
+This automatically manages:
 1. **ArgoCD Web UI**: `https://127.0.0.1:8080` (admin)
-2. **Grafana Audit Dashboard**: `http://localhost:3000` (admin/admin)
-3. **Prometheus Metrics**: `http://localhost:9090`
-4. **Node.js Hello API**: `http://localhost:8000`
+2. **Node.js Hello API**: `http://localhost:8000`
+3. **LocalStack AWS CloudWatch**: `http://localhost:4566`
+
+---
+
+## 📐 Architecture & Presentations
+
+For a complete architectural breakdown, interactive sequence diagrams, and presentation-ready system views, see [`ARCHITECTURE.md`](file:///d:/Projects/2026/MFX/POC/Argo-terminal/ARCHITECTURE.md).
+
+- **Architecture Diagram**: User -> ArgoCD Web Terminal -> Pod Shell -> Linux Kernel (eBPF sys_execve) -> Tetragon -> AWS Fluent Bit -> CloudWatch Logs (`/aws/eks/audit/terminal-commands`).
+- **Interactive Sequence Diagram**: Full packet & event trace from terminal keystroke to CloudWatch Insights.
 
 ---
 

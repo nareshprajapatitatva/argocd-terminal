@@ -69,10 +69,12 @@ try {
     Write-Host ""
     Write-Host "1. ArgoCD Web UI:         https://127.0.0.1:8080" -ForegroundColor White
     Write-Host "   Credentials:           admin / $argocdPassword" -ForegroundColor Yellow
-    Write-Host "2. Grafana Audit & Logs:  http://localhost:3000" -ForegroundColor White
-    Write-Host "   Credentials:           admin / admin (or auto-login)" -ForegroundColor Yellow
-    Write-Host "3. Prometheus Metrics:    http://localhost:9090" -ForegroundColor White
-    Write-Host "4. Node.js Hello API:     http://localhost:8000" -ForegroundColor White
+    Write-Host "2. Node.js Hello API:     http://localhost:8000" -ForegroundColor White
+    Write-Host "3. LocalStack AWS:        http://localhost:4566" -ForegroundColor White
+    Write-Host ""
+    Write-Host "--- AUDIT LOGGING & VERIFICATION ---" -ForegroundColor Cyan
+    Write-Host "View CloudWatch Logs:     .\get-cloudwatch-logs.ps1" -ForegroundColor Yellow
+    Write-Host "View Live eBPF Stream:    kubectl exec -it -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --namespaces nodejs-app" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Press Ctrl+C to stop all port forwards." -ForegroundColor DarkYellow
     Write-Host "=======================================================`n" -ForegroundColor Cyan
@@ -80,7 +82,7 @@ try {
     if ($OpenBrowser) {
         Write-Host "Opening dashboards in default browser..." -ForegroundColor Gray
         Start-Process "https://127.0.0.1:8080"
-        Start-Process "http://localhost:3000"
+        Start-Process "http://localhost:8000"
     }
 
     # Keep script alive to maintain background processes and handle Ctrl+C

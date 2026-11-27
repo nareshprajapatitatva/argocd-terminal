@@ -49,7 +49,7 @@ data:
         Tag               tetragon.audit
         Path              /var/log/pods/kube-system_tetragon*/*export*/*.log
         Parser            docker
-        DB                /var/log/flb_tetragon.db
+        DB                /tmp/flb_tetragon.db
         Mem_Buf_Limit     10MB
         Skip_Long_Lines   On
         Refresh_Interval  5
@@ -68,7 +68,14 @@ data:
         Match             tetragon.audit
         Regex             process_exec['process']['pod']['namespace'] ^nodejs-app$
 
-    # 4. Ship directly to AWS CloudWatch Logs (or LocalStack via endpoint env)
+    # 4. Format message to clean audit line: [Session: <id>] <pod> -> <binary> <args>
+    [FILTER]
+        Name              lua
+        Match             tetragon.audit
+        Script            format_audit.lua
+        Call              format_message
+
+    # 5. Ship directly to AWS CloudWatch Logs (or LocalStack via endpoint env)
     [OUTPUT]
         Name              cloudwatch_logs
         Match             tetragon.audit
@@ -76,10 +83,23 @@ data:
         log_group_name    /aws/eks/audit/terminal-commands
         log_stream_prefix audit-
         auto_create_group true
-        # Endpoint is set via environment variable:
-        # - Default: empty (uses real AWS CloudWatch Logs)
-        # - LocalStack: http://localstack.localstack.svc.cluster.local:4566
-        endpoint          ${AWS_CLOUDWATCH_ENDPOINT}
+        endpoint          localstack.localstack.svc.cluster.local
+        port              4566
+
+  format_audit.lua: |
+    function format_message(tag, timestamp, record)
+        local proc = record["process_exec"] and record["process_exec"]["process"]
+        if proc then
+            local session_id = proc["parent_exec_id"] or "unknown"
+            local pod = (proc["pod"] and proc["pod"]["name"]) or "unknown"
+            local binary = proc["binary"] or ""
+            local args = proc["arguments"] or ""
+            
+            local clean_line = string.format("[Session: %s] %s -> %s %s", session_id, pod, binary, args)
+            return 1, timestamp, { log = clean_line }
+        end
+        return 0, timestamp, record
+    end
 
   parsers.conf: |
     [PARSER]

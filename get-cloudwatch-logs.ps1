@@ -17,48 +17,52 @@ if (-not $localstackPod) {
     return
 }
 
-# 2. Query log streams from CloudWatch in LocalStack
-Write-Host "`nChecking for log streams in /aws/eks/audit/terminal-commands..." -ForegroundColor Yellow
+# 2. Query recent log events from CloudWatch in LocalStack
+Write-Host "`n--- RECENT TERMINAL COMMAND AUDIT EVENTS ---" -ForegroundColor Cyan
 
-$cmd = "awslocal logs describe-log-streams --log-group-name /aws/eks/audit/terminal-commands --query 'logStreams[*].logStreamName' --output text 2>/dev/null"
-$streams = kubectl exec -n localstack $localstackPod -- sh -c $cmd
+$fetchCmd = "awslocal logs filter-log-events --log-group-name /aws/eks/audit/terminal-commands --query 'events[*].message' --output json 2>/dev/null"
+$jsonOutput = kubectl exec -n localstack $localstackPod -- sh -c $fetchCmd
 
-if (-not $streams -or $streams.Trim() -eq "") {
-    Write-Host "No log streams found yet." -ForegroundColor DarkYellow
+if (-not $jsonOutput -or $jsonOutput.Trim() -eq "[]" -or $jsonOutput.Trim() -eq "") {
+    Write-Host "No log events found yet." -ForegroundColor DarkYellow
     Write-Host "Tip: Run commands in your application terminal, then run this script again!" -ForegroundColor Gray
     Write-Host "  e.g.: kubectl exec -it -n nodejs-app deploy/nodejs-hello-world -- sh -c 'whoami; ls -la'" -ForegroundColor Gray
+    Write-Host "`n=======================================================" -ForegroundColor Cyan
     return
 }
 
-Write-Host "[OK] Found log stream(s): $streams" -ForegroundColor Green
+try {
+    $events = $jsonOutput | ConvertFrom-Json
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
 
-# 3. Fetch and format events
-Write-Host "`n--- RECENT TERMINAL COMMAND AUDIT EVENTS ---" -ForegroundColor Cyan
-$streamList = $streams -split "\s+"
-foreach ($stream in $streamList) {
-    if ([string]::IsNullOrWhiteSpace($stream)) { continue }
-    
-    $fetchCmd = "awslocal logs get-log-events --log-group-name /aws/eks/audit/terminal-commands --log-stream-name $stream --query 'events[*].message' --output text 2>/dev/null"
-    $events = kubectl exec -n localstack $localstackPod -- sh -c $fetchCmd
-    
-    if ($events) {
-        $events -split "`n" | ForEach-Object {
-            $line = $_
-            if ($line -like "*process_exec*") {
-                try {
-                    $json = $line | ConvertFrom-Json
-                    $proc = $json.process_exec.process
-                    $podName = $proc.pod.name
-                    $binary = $proc.binary
-                    $args = $proc.arguments
-                    $sessionId = $proc.parent_exec_id
-                    $uid = $proc.uid
-                    Write-Host "[Session: $sessionId] Pod: $podName (UID: $uid) -> $binary $args" -ForegroundColor Green
-                } catch {
-                    Write-Host $line -ForegroundColor Gray
-                }
+    foreach ($msg in $events) {
+        if ([string]::IsNullOrWhiteSpace($msg)) { continue }
+
+        $cleanLine = ""
+        try {
+            $parsed = $msg | ConvertFrom-Json
+            if ($parsed.log -match '\[Session:') {
+                $cleanLine = $parsed.log.Trim()
+            } elseif ($parsed.process_exec) {
+                $proc = $parsed.process_exec.process
+                $podName = $proc.pod.name
+                $binary = $proc.binary
+                $args = $proc.arguments
+                $sessionId = $proc.parent_exec_id
+                $cleanLine = "[Session: $sessionId] $podName -> $binary $args"
+            }
+        } catch {
+            if ($msg -match '\[Session:') {
+                $cleanLine = $msg.Trim()
             }
         }
+
+        if ($cleanLine -and $seen.Add($cleanLine)) {
+            Write-Host $cleanLine -ForegroundColor Green
+        }
     }
+} catch {
+    Write-Host $jsonOutput -ForegroundColor Gray
 }
-Write-Host "`n=======================================================" -ForegroundColor Cyan
+
+Write-Host "=======================================================" -ForegroundColor Cyan
